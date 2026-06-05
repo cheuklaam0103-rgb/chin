@@ -90,14 +90,16 @@
 
         // --- 精簡版「把」字句關卡庫（適合 SEN） ---
         const questionDeck = [
-            { targetSlot: 'who', targetWord: '皮卡丘', options: ['皮卡丘', '小火龍', '傑尼龜'], hint: '提示：出戰的是「皮卡丘」喔！', sentence: { who: '皮卡丘', ba: '把', what: '蘋果', action: '吃掉了' } },
-            { targetSlot: 'what', targetWord: '地板', options: ['大樹', '地板', '桌子'], hint: '提示：傑尼龜想把哪裡噴濕呢？', sentence: { who: '傑尼龜', ba: '把', what: '地板', action: '噴濕了' } },
-            { targetSlot: 'action', targetWord: '燒掉了', options: ['燒掉了', '吹走了', '擦乾淨'], hint: '提示：小火龍用火焰把枯葉怎麼了？', sentence: { who: '小火龍', ba: '把', what: '枯葉', action: '燒掉了' } },
-            { targetSlot: 'who', targetWord: '媽媽', options: ['老師', '媽媽', '同學'], hint: '提示：是誰把門關上的呢？', sentence: { who: '媽媽', ba: '把', what: '大門', action: '關上了' } },
+            { targetSlot: 'who', targetWord: '我', options: ['我', '風', '小鳥'], hint: '提示：是「我」在學校把大門關上喔！', sentence: { who: '我', ba: '把', what: '大門', action: '關上' } },
+            { targetSlot: 'what', targetWord: '功課', options: ['功課', '點心', '玩具'], hint: '提示：在教室裡，組長提醒要把什麼寫完？', sentence: { who: '同學', ba: '把', what: '功課', action: '寫完' } },
+            { targetSlot: 'action', targetWord: '洗乾淨', options: ['洗乾淨', '弄髒了', '藏起來'], hint: '提示：吃飯前，老師提醒要把雙手怎麼了？', sentence: { who: '大家', ba: '把', what: '雙手', action: '洗乾淨' } },
+            { targetSlot: 'what', targetWord: '水', options: ['衣服', '開水', '電視'], hint: '提示：口渴了，媽媽叫我把什麼喝光？', sentence: { who: '哥哥', ba: '把', what: '開水', action: '喝光' } },
             { targetSlot: 'what', targetWord: '功課', options: ['功課', '牛奶', '衣服'], hint: '提示：哥哥在書桌前把什麼寫完了？', sentence: { who: '哥哥', ba: '把', what: '功課', action: '寫完了' } },
             { targetSlot: 'action', targetWord: '喝光了', options: ['洗好了', '穿好了', '喝光了'], hint: '提示：貓咪把盤子裡的水怎麼了？', sentence: { who: '貓咪', ba: '把', what: '開水', action: '喝光了' } },
+            { targetSlot: 'who', targetWord: '媽媽', options: ['貓咪', '媽媽', '飛機'], hint: '提示：是誰把晚餐煮好了呢？', sentence: { who: '媽媽', ba: '把', what: '晚餐', action: '煮好' } },
             { targetSlot: 'what', targetWord: '衣服', options: ['垃圾', '衣服', '玩具'], hint: '提示：妹妹洗完澡，要把什麼穿好？', sentence: { who: '妹妹', ba: '把', what: '衣服', action: '穿好了' } },
-            { targetSlot: 'action', targetWord: '擦乾淨', options: ['擦乾淨', '弄髒了', '丟掉了'], hint: '提示：老師拿起抹布，把桌子怎麼了？', sentence: { who: '老師', ba: '把', what: '桌子', action: '擦乾淨' } }
+            { targetSlot: 'action', targetWord: '擦乾淨', options: ['擦乾淨', '弄髒了', '丟掉了'], hint: '提示：老師拿起抹布，把桌子怎麼了？', sentence: { who: '老師', ba: '把', what: '桌子', action: '擦乾淨' } },
+            { targetSlot: 'what', targetWord: '垃圾', options: ['垃圾', '石頭', '小草'], hint: '提示：野餐完，要把什麼丟進垃圾桶？', sentence: { who: '我們', ba: '把', what: '垃圾', action: '丟掉' } }
         ];
 
         // --- 招式資料庫 ---
