@@ -120,6 +120,18 @@
         const getSprite = (id, back=false) => 
             `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${back ? 'back/' : ''}${id}.gif`;
 
+        // --- 核心語音功能：播放粵語 ---
+        const speakCantonese = (text) => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-HK'; 
+                utterance.rate = 0.85; 
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        };
+
         // --- 血條組件 ---
         const HPBar = ({ current, max, name }) => {
             const percentage = (current / max) * 100;
