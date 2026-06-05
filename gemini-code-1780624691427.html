@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>語文王國：寶可夢「把」字句挑戰</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=400;700&family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a1a1a;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .pixel-font { font-family: 'Press Start 2P', cursive; }
+
+        /* VFX Animations */
+        @keyframes fire-burst { 0% { transform: scale(0); opacity: 1; } 50% { opacity: 0.8; } 100% { transform: scale(3); opacity: 0; } }
+        @keyframes water-stream { 0% { width: 0; opacity: 0.8; transform: rotate(-45deg); } 100% { width: 150%; opacity: 0; transform: rotate(-45deg) translate(-100px, -100px); } }
+        @keyframes thunder-bolt { 0% { height: 0; opacity: 1; } 50% { height: 100%; opacity: 1; } 100% { height: 100%; opacity: 0; } }
+        @keyframes leaf-spin { 0% { transform: translate(0, 0) rotate(0deg); opacity: 1; } 100% { transform: translate(100px, 100px) rotate(720deg); opacity: 0; } }
+        @keyframes shockwave { 0% { transform: scale(0.1); border-width: 20px; opacity: 1; } 100% { transform: scale(2); border-width: 0px; opacity: 0; } }
+        @keyframes shake-anim { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-15px); } 75% { transform: translateX(15px); } }
+
+        .anim-fire { animation: fire-burst 0.6s ease-out forwards; }
+        .anim-water { animation: water-stream 0.5s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards; }
+        .anim-thunder-bolt { animation: thunder-bolt 0.3s ease-out forwards; }
+        .anim-leaf { animation: leaf-spin 0.8s ease-out forwards; }
+        .anim-shockwave { animation: shockwave 0.6s ease-out forwards; }
+
+        /* Pokemon Animations */
+        .monster-idle { animation: float 3s ease-in-out infinite; }
+        .animate-shake { animation: shake-anim 0.3s ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .game-screen {
+            max-width: 600px; margin: 0 auto; height: 100dvh;
+            display: flex; flex-direction: column; background: #2d3748;
+            position: relative; box-shadow: 0 0 40px rgba(0,0,0,0.7);
+        }
+        
+        .hp-container {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(2px);
+            border: 2px solid #fff;
+            border-radius: 8px;
+            padding: 4px 8px;
+            width: 180px; 
+            margin-bottom: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+
+        /* 閃爍動畫引導學生點擊 */
+        @keyframes target-glow {
+            0%, 100% { border-color: rgba(255,255,255,0.4); box-shadow: none; }
+            50% { border-color: #f59e0b; box-shadow: 0 0 15px #f59e0b; }
+        }
+        .active-target {
+            animation: target-glow 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 背景圖片庫 ---
+        const bgImages = {
+            forest: "https://img.freepik.com/free-vector/hand-drawn-flat-design-forest-landscape_23-2149157285.jpg", 
+            city: "https://img.freepik.com/free-vector/nature-landscape-with-road-city-horizon-trees-clouds-sky-summer-scene-with-empty-highway-green-fields-road-sign-town-buildings-vector-cartoon-illustration_107791-21641.jpg", 
+            sky: "https://img.freepik.com/free-vector/blank-sky-night-scene-with-blank-flood-landscape_1308-60757.jpg"
+        };
+
+        const gyms = [
+            { id: 1, monsterId: 150, name: "超夢", title: "神秘森林道館", bg: bgImages.forest },
+            { id: 2, monsterId: 249, name: "洛奇亞", title: "藍天市區道館", bg: bgImages.city },
+            { id: 3, monsterId: 384, name: "烈空坐", title: "天空之城道館", bg: bgImages.sky }
+        ];
+
+        // --- 精簡版「把」字句關卡庫（適合 SEN） ---
+        const questionDeck = [
+            { targetSlot: 'who', targetWord: '皮卡丘', options: ['皮卡丘', '小火龍', '傑尼龜'], hint: '提示：出戰的是「皮卡丘」喔！', sentence: { who: '皮卡丘', ba: '把', what: '蘋果', action: '吃掉了' } },
+            { targetSlot: 'what', targetWord: '地板', options: ['大樹', '地板', '桌子'], hint: '提示：傑尼龜想把哪裡噴濕呢？', sentence: { who: '傑尼龜', ba: '把', what: '地板', action: '噴濕了' } },
+            { targetSlot: 'action', targetWord: '燒掉了', options: ['燒掉了', '吹走了', '擦乾淨'], hint: '提示：小火龍用火焰把枯葉怎麼了？', sentence: { who: '小火龍', ba: '把', what: '枯葉', action: '燒掉了' } },
+            { targetSlot: 'who', targetWord: '媽媽', options: ['老師', '媽媽', '同學'], hint: '提示：是誰把門關上的呢？', sentence: { who: '媽媽', ba: '把', what: '大門', action: '關上了' } },
+            { targetSlot: 'what', targetWord: '功課', options: ['功課', '牛奶', '衣服'], hint: '提示：哥哥在書桌前把什麼寫完了？', sentence: { who: '哥哥', ba: '把', what: '功課', action: '寫完了' } },
+            { targetSlot: 'action', targetWord: '喝光了', options: ['洗好了', '穿好了', '喝光了'], hint: '提示：貓咪把盤子裡的水怎麼了？', sentence: { who: '貓咪', ba: '把', what: '開水', action: '喝光了' } },
+            { targetSlot: 'what', targetWord: '衣服', options: ['垃圾', '衣服', '玩具'], hint: '提示：妹妹洗完澡，要把什麼穿好？', sentence: { who: '妹妹', ba: '把', what: '衣服', action: '穿好了' } },
+            { targetSlot: 'action', targetWord: '擦乾淨', options: ['擦乾淨', '弄髒了', '丟掉了'], hint: '提示：老師拿起抹布，把桌子怎麼了？', sentence: { who: '老師', ba: '把', what: '桌子', action: '擦乾淨' } }
+        ];
+
+        // --- 招式資料庫 ---
+        const moveDatabase = {
+            electric: "十萬伏特",
+            fire: "噴射火焰",
+            water: "水炮",
+            grass: "飛葉快刀"
+        };
+
+        const starterPool = [
+            { id: 25, name: "皮卡丘", type: "electric" },
+            { id: 6, name: "噴火龍", type: "fire" },
+            { id: 9, name: "水箭龜", type: "water" },
+            { id: 3, name: "妙蛙花", type: "grass" }
+        ];
+
+        const getSprite = (id, back=false) => 
+            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${back ? 'back/' : ''}${id}.gif`;
+
+        // --- 血條組件 ---
+        const HPBar = ({ current, max, name }) => {
+            const percentage = (current / max) * 100;
+            const barColor = percentage > 50 ? 'bg-green-500' : percentage > 20 ? 'bg-yellow-500' : 'bg-red-500';
+            return (
+                <div className="hp-container text-white text-xs font-bold">
+                    <div className="flex justify-between mb-1">
+                        <span>{name}</span>
+                        <span>{current}/{max} HP</span>
+                    </div>
+                    <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden border border-gray-500">
+                        <div className={`h-full ${barColor} transition-all duration-300`} style={{ width: `${percentage}%` }}></div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 特效動畫組件 ---
+        const BattleVFX = ({ type, onComplete }) => {
+            useEffect(() => {
+                const timer = setTimeout(() => { onComplete(); }, 600);
+                return () => clearTimeout(timer);
+            }, [onComplete]);
+
+            const effectClasses = {
+                electric: "bg-yellow-300 anim-shockwave",
+                fire: "bg-red-500 rounded-full anim-fire",
+                water: "bg-blue-400 h-4 w-full absolute bottom-1/3 anim-water",
+                grass: "bg-green-500 w-8 h-8 rounded-full anim-leaf"
+            };
+
+            return (
+                <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none overflow-hidden">
+                    <div className={`w-16 h-16 opacity-0 ${effectClasses[type] || 'bg-white'}`}></div>
+                </div>
+            );
+        };
+
+        // --- 主程式組件 ---
+        const Game = () => {
+            const [state, setState] = useState('intro'); // intro, battle, victory, gameover
+            const [player, setPlayer] = useState(null);
+            const [gymIdx, setGymIdx] = useState(0);
+            const [deckIndex, setDeckIndex] = useState(0);
+            const [msg, setMsg] = useState("");
+            const [shake, setShake] = useState(false);
+            const [vfx, setVfx] = useState(null);
+
+            // 火車車廂狀態 (用來動態顯示選中的字)
+            const [currentSentence, setCurrentSentence] = useState({ who: "", ba: "把", what: "", action: "" });
+            const [wrongCount, setWrongCount] = useState(0);
+
+            // 血量狀態
+            const [pHP, setPHP] = useState(3);
+            const [eHP, setEHP] = useState(3);
+
+            const currentQ = questionDeck[deckIndex % questionDeck.length];
+
+            // 當關卡切換時，初始化火車車廂
+            useEffect(() => {
+                if (currentQ) {
+                    const initial = { ...currentQ.sentence };
+                    // 把要填空的格子清空
+                    initial[currentQ.targetSlot] = "";
+                    setCurrentSentence(initial);
+                }
+            }, [deckIndex]);
+
+            const startGame = (selectedStarter) => {
+                setPlayer(selectedStarter);
+                setPHP(3);
+                setEHP(3);
+                setGymIdx(0);
+                setDeckIndex(0);
+                setMsg("請觀察下方的句子，把缺少的地方補齊吧！");
+                setState('battle');
+            };
+
+            // 學生點擊選項字卡
+            const handleSelectWord = (word) => {
+                if (!currentQ) return;
+
+                // 填入對應的車廂
+                const updatedSentence = { ...currentSentence, [currentQ.targetSlot]: word };
+                setCurrentSentence(updatedSentence);
+
+                // 檢查是否正確
+                if (word === currentQ.targetWord) {
+                    setMsg(`太棒了！句子完成：${updatedSentence.who} 把 ${updatedSentence.what} ${updatedSentence.action}！`);
+                    // 延遲發動寶可夢招式
+                    setTimeout(() => {
+                        executeAttack();
+                    }, 1200);
+                } else {
+                    setShake(true);
+                    setTimeout(() => setShake(false), 300);
+                    setWrongCount(prev => prev + 1);
+
+                    if (wrongCount >= 1) {
+                        setMsg(`別灰心！${currentQ.hint}`);
+                    } else {
+                        setMsg("讀音或意思好像不太順暢，再試一次看看！");
+                    }
+                    
+                    // 清空該格子讓學生重選
+                    setTimeout(() => {
+                        setCurrentSentence(prev => ({ ...prev, [currentQ.targetSlot]: "" }));
+                    }, 1500);
+                }
+            };
+
+            // 答對後發動攻擊
+            const executeAttack = () => {
+                const moveName = moveDatabase[player.type];
+                setMsg(`${player.name} 發動了「${moveName}」！`);
+                setVfx(player.type);
+            };
+
+            const onVfxEnd = () => {
+                setVfx(null);
+                setShake(true);
+                setTimeout(() => setShake(false), 300);
+                setWrongCount(0); // 重設答錯計數
+                
+                setEHP(prev => {
+                    const next = prev - 1;
+                    if (next <= 0) {
+                        handleGymClear();
+                        return 0;
+                    } else {
+                        setMsg("💥 成功擊中敵方道館頭目！下一題準備！");
+                        setTimeout(() => {
+                            setMsg("請補齊下方的「把」字句：");
+                            setDeckIndex(i => i + 1);
+                        }, 1500);
+                        return next;
+                    }
+                });
+            };
+
+            const handleGymClear = () => {
+                setMsg(`🎉 太厲害了！成功突破了 ${gyms[gymIdx].name}！`);
+                if (gymIdx < gyms.length - 1) {
+                    setTimeout(() => {
+                        setGymIdx(g => g + 1);
+                        setEHP(3); 
+                        setMsg(`🏁 正在前進到... ${gyms[gymIdx+1].title}！`);
+                        setTimeout(() => {
+                            setMsg("請繼續完成「把」字句魔法：");
+                            setDeckIndex(i => i + 1);
+                        }, 2000);
+                    }, 2000);
+                } else {
+                    setTimeout(() => setState('victory'), 2000);
+                }
+            };
+
+            // --- 畫面渲染 ---
+
+            if (state === 'intro') return (
+                <div className="game-screen bg-gray-900 text-white items-center justify-center p-6 text-center">
+                    <h1 className="text-3xl md:text-4xl text-yellow-400 pixel-font mb-2 leading-snug drop-shadow-lg">
+                        語文王國<br/><span className="text-xl md:text-2xl text-white">「把」字句魔法挑戰</span>
+                    </h1>
+                    <p className="text-sm text-gray-400 max-w-xs mb-6">
+                        學習結構：<br/>🔴人物 ＋ 🟢把 ＋ 🔵東西 ＋ 🟡動作
+                    </p>
+                    <div className="text-gray-300 mb-4 font-bold text-sm">請挑選你的魔法夥伴出戰：</div>
+                    <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                        {starterPool.map(s => (
+                            <button 
+                                key={s.id} 
+                                onClick={() => startGame(s)} 
+                                className="bg-gray-800 p-3 rounded-xl border-2 border-gray-600 hover:border-yellow-400 hover:bg-gray-700 transition active:scale-95 flex flex-col items-center shadow-lg"
+                            >
+                                <img src={getSprite(s.id)} className="w-16 h-16 object-contain" alt={s.name} />
+                                <div className="mt-1 font-bold text-sm text-yellow-300">{s.name}</div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            if (state === 'battle') {
+                const currentGym = gyms[gymIdx];
+
+                return (
+                    <div className="game-screen" style={{backgroundImage: `url(${currentGym.bg})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+                        
+                        {/* 特效層 */}
+                        {vfx && <BattleVFX type={vfx} onComplete={onVfxEnd} />}
+
+                        {/* 戰鬥舞台區 */}
+                        <div className="flex-1 relative overflow-hidden">
+                            <div className="absolute top-3 right-3 bg-blue-900/80 text-white text-[11px] font-bold px-3 py-1 rounded-md border border-blue-400 z-10 shadow">
+                                🏰 {currentGym.title}
+                            </div>
+
+                            {/* 道館頭目 */}
+                            <div className={`absolute top-14 right-6 flex flex-col items-end transition-transform duration-100 ${shake ? 'animate-shake' : ''}`}>
+                                <HPBar current={eHP} max={3} name={currentGym.name} />
+                                <img src={getSprite(currentGym.monsterId)} className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-xl monster-idle" />
+                            </div>
+
+                            {/* 玩家寶可夢 */}
+                            <div className={`absolute bottom-4 left-6 flex flex-col items-start transition-transform duration-100 ${shake ? 'animate-shake' : ''}`}>
+                                <img src={getSprite(player.id, true)} className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-xl" />
+                                <HPBar current={pHP} max={3} name={player.name} />
+                            </div>
+                        </div>
+
+                        {/* 下方核心操作面板 */}
+                        <div className="bg-gray-900 border-t-4 border-yellow-500 p-3 rounded-t-3xl shadow-2xl h-[56%] flex flex-col z-30">
+                            
+                            {/* 提示對話框 */}
+                            <div className="bg-gray-800 p-2.5 rounded-lg border border-gray-600 mb-3 h-16 flex items-center justify-center text-center">
+                                <span className="text-white font-bold text-sm md:text-base text-yellow-300">
+                                    {msg}
+                                </span>
+                            </div>
+                            
+                            {/* 「把」字句火車車廂 (視覺中樞) */}
+                            <div className="grid grid-cols-4 gap-1.5 mb-4 bg-black/40 p-2 rounded-xl border border-gray-700">
+                                {/* 車廂 1：人物 */}
+                                <div className={`flex flex-col items-center justify-center p-1 rounded-lg border-2 bg-red-950/40 ${currentQ?.targetSlot === 'who' ? 'active-target bg-red-900/40' : 'border-red-900'}`}>
+                                    <span className="text-[10px] text-red-400 font-bold mb-1">👤 人物</span>
+                                    <span className="text-base md:text-lg font-bold text-red-200 min-h-[28px]">
+                                        {currentSentence.who || "？"}
+                                    </span>
+                                </div>
+
+                                {/* 車廂 2：把 (固定不變) */}
+                                <div className="flex flex-col items-center justify-center p-1 rounded-lg border-2 border-green-900 bg-green-900/30">
+                                    <span className="text-[10px] text-green-400 font-bold mb-1">🟢 魔法</span>
+                                    <span className="text-base md:text-lg font-bold text-green-300">把</span>
+                                </div>
+
+                                {/* 車廂 3：東西 */}
+                                <div className={`flex flex-col items-center justify-center p-1 rounded-lg border-2 bg-blue-950/40 ${currentQ?.targetSlot === 'what' ? 'active-target bg-blue-900/40' : 'border-blue-900'}`}>
+                                    <span className="text-[10px] text-blue-400 font-bold mb-1">📦 東西</span>
+                                    <span className="text-base md:text-lg font-bold text-blue-200 min-h-[28px]">
+                                        {currentSentence.what || "？"}
+                                    </span>
+                                </div>
+
+                                {/* 車廂 4：動作 */}
+                                <div className={`flex flex-col items-center justify-center p-1 rounded-lg border-2 bg-yellow-950/40 ${currentQ?.targetSlot === 'action' ? 'active-target bg-yellow-900/40' : 'border-yellow-900'}`}>
+                                    <span className="text-[10px] text-yellow-400 font-bold mb-1">⚡ 動作</span>
+                                    <span className="text-base md:text-lg font-bold text-yellow-200 min-h-[28px]">
+                                        {currentSentence.action || "？"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* 選擇字卡區（大按鈕，方便點擊） */}
+                            <div className="flex-1 flex flex-col justify-center">
+                                <div className="text-center text-xs text-gray-400 mb-2">👇 請點選正確的詞語卡片填入「？」中：</div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {currentQ && currentQ.options.map((word, idx) => {
+                                        // 根據當前考題類型上色
+                                        let btnColor = "bg-red-700 border-red-900 active:bg-red-800";
+                                        if (currentQ.targetSlot === 'what') btnColor = "bg-blue-700 border-blue-900 active:bg-blue-800";
+                                        if (currentQ.targetSlot === 'action') btnColor = "bg-amber-600 border-amber-800 active:bg-amber-700";
+
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handleSelectWord(word)}
+                                                className={`text-white text-base md:text-xl font-bold py-4 rounded-xl shadow-lg border-b-4 active:scale-95 active:border-b-0 transition-all text-center ${btnColor}`}
+                                            >
+                                                {word}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                );
+            }
+
+            if (state === 'victory') return (
+                <div className="game-screen bg-emerald-700 flex flex-col items-center justify-center text-white p-6 text-center">
+                    <h1 className="text-4xl font-bold mb-4 text-yellow-300">🎉 闖關成功！</h1>
+                    <p className="text-lg font-bold mb-2">你已經成為「把」字句魔法大師！</p>
+                    <p className="text-sm text-emerald-200 mb-8">能夠非常精準地組合句子火車囉！</p>
+                    <button 
+                        onClick={() => window.location.reload()} 
+                        className="bg-white text-emerald-800 px-8 py-3 rounded-full font-bold text-lg shadow-xl hover:scale-105 active:scale-95 transition-all"
+                    >
+                        再玩一次
+                    </button>
+                </div>
+            );
+
+            return null;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Game />);
+    </script>
+</body>
+</html>
